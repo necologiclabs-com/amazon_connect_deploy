@@ -1,9 +1,10 @@
 # 開発環境設定
 # Amazon Connect Instance Configuration
 connect:
-  instance_id: "12345678-1234-5678-9abc-123456789012"
-  instance_arn: "arn:aws:connect:us-east-1:123456789012:instance/12345678-1234-5678-9abc-123456789012"
-  region: "us-east-1"
+  # Provided by operator (updated 2025-10-17)
+  instance_id: "9c96af75-7222-4eb1-9d16-29656c4401f2"
+  instance_arn: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2"
+  region: "ap-northeast-1"
 
 # Token Mappings for DEV Environment
 tokens:

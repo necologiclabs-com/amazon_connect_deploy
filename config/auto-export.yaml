@@ -1,0 +1,40 @@
+environments:
+  dev:
+    instanceId: "9c96af75-7222-4eb1-9d16-29656c4401f2"
+    region: "ap-northeast-1"
+    outputDir: "flows-dev"
+    enabled: true
+    schedule: "0 2 * * *"
+    filters:
+      types: ["CONTACT_FLOW"]
+      states: ["ACTIVE"]
+  test:
+    instanceId: "${CONNECT_INSTANCE_ID_TEST}"
+    region: "ap-northeast-1"
+    outputDir: "flows-test"
+    enabled: false
+    schedule: "0 3 * * 0"
+    filters:
+      types: ["CONTACT_FLOW"]
+      states: ["ACTIVE"]
+
+git:
+  autoCommit: true
+  commitMessage: "auto: Contact Flows自動エクスポート更新"
+  autoPush: false
+  branch: "auto-export"
+
+notifications:
+  slack:
+    enabled: false
+    webhookUrl: "${SLACK_WEBHOOK_URL}"
+    channel: "#connect-updates"
+  email:
+    enabled: false
+    to: ["team@company.com"]
+    subject: "Connect Flows Auto Export Report"
+
+incremental:
+  enabled: true
+  checkInterval: "*/30 * * * *"
+  lookbackHours: 1

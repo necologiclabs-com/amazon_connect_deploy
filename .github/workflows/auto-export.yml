@@ -1,0 +1,153 @@
+name: Auto Export Contact Flows
+
+on:
+  schedule:
+    # 毎日 JST 8:00 (UTC 23:00) に実行
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to export from'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - test
+          - all
+      incremental:
+        description: 'Incremental export (only changed flows)'
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-export:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Export Contact Flows
+        id: export
+        run: |
+          # 環境変数設定
+          export CONNECT_INSTANCE_ID_DEV="${{ vars.CONNECT_INSTANCE_ID_DEV }}"
+          export CONNECT_INSTANCE_ID_TEST="${{ vars.CONNECT_INSTANCE_ID_TEST }}"
+          
+          # エクスポート実行
+          if [ "${{ github.event.inputs.environment || 'dev' }}" = "all" ]; then
+            echo "Exporting all environments..."
+            npm run export:auto
+          else
+            ENV="${{ github.event.inputs.environment || 'dev' }}"
+            INSTANCE_VAR="CONNECT_INSTANCE_ID_${ENV^^}"
+            INSTANCE_ID="${!INSTANCE_VAR}"
+            
+            echo "Exporting from environment: $ENV"
+            echo "Instance ID: $INSTANCE_ID"
+            
+            if [ "${{ github.event.inputs.incremental }}" = "true" ]; then
+              node scripts/export.js export \
+                --instance-id "$INSTANCE_ID" \
+                --output "flows-$ENV" \
+                --incremental
+            else
+              node scripts/export.js export \
+                --instance-id "$INSTANCE_ID" \
+                --output "flows-$ENV"
+            fi
+          fi
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected:"
+            git status --porcelain
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            auto: Contact Flows自動エクスポート更新
+            
+            環境: ${{ github.event.inputs.environment || 'dev' }}
+            増分: ${{ github.event.inputs.incremental || 'true' }}
+            実行日時: ${{ github.run_id }}
+          title: "[AUTO] Contact Flows Export - ${{ github.event.inputs.environment || 'dev' }}"
+          body: |
+            ## 🤖 自動エクスポート
+
+            **環境**: `${{ github.event.inputs.environment || 'dev' }}`
+            **増分モード**: `${{ github.event.inputs.incremental || 'true' }}`
+            **実行時刻**: ${{ github.run_started_at }}
+            **ワークフロー**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ### 変更内容
+            Amazon Connect デザイナーから自動エクスポートされたContact Flowsの更新です。
+
+            ### 確認項目
+            - [ ] 新規フローの内容確認
+            - [ ] 既存フローの変更内容確認  
+            - [ ] メタデータの妥当性確認
+            - [ ] 環境設定ファイルとの整合性確認
+
+            ### 次のステップ
+            1. 変更内容をレビュー
+            2. 必要に応じて追加のテンプレート化・トークン化
+            3. マージ後、TEST環境での動作確認
+
+            ---
+            *このPull Requestは自動生成されました。*
+          branch: auto-export/${{ github.event.inputs.environment || 'dev' }}-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            auto-export
+            contact-flows
+            ${{ github.event.inputs.environment || 'dev' }}
+
+      - name: Slack Notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#connect-updates'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          text: |
+            Auto Export completed for `${{ github.event.inputs.environment || 'dev' }}` environment
+            Changes: ${{ steps.changes.outputs.has_changes }}
+            Status: ${{ job.status }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
