@@ -1,0 +1,44 @@
+{
+  "name": "amazon-connect-deploy",
+  "version": "1.0.0",
+  "description": "Amazon Connect Contact Flow CI/CD Pipeline",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint scripts/ --ext .js,.ts",
+    "test": "jest",
+    "build": "npm run lint && npm run test",
+    "deploy:test": "node scripts/deploy.js test",
+    "deploy:prod": "node scripts/deploy.js prod",
+    "validate": "node scripts/validate.js",
+    "normalize": "node scripts/normalize.js",
+    "render": "node scripts/render.js",
+    "drift-detect": "node scripts/drift-detect.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1400.0",
+    "aws-cdk-lib": "^2.100.0",
+    "constructs": "^10.3.0",
+    "yaml": "^2.3.2",
+    "joi": "^17.9.2",
+    "lodash": "^4.17.21",
+    "fs-extra": "^11.1.1",
+    "commander": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.4.5",
+    "typescript": "^5.1.6",
+    "jest": "^29.6.1",
+    "eslint": "^8.45.0",
+    "@typescript-eslint/eslint-plugin": "^6.2.0",
+    "@typescript-eslint/parser": "^6.2.0"
+  },
+  "keywords": [
+    "amazon-connect",
+    "contact-flow",
+    "cicd",
+    "aws",
+    "cdk"
+  ],
+  "author": "Your Organization",
+  "license": "MIT"
+}

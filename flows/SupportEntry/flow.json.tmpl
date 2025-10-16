@@ -1,0 +1,224 @@
+{
+  "name": "SupportEntry", 
+  "type": "CONTACT_FLOW",
+  "description": "Customer support entry flow with Lex bot integration",
+  "content": {
+    "Version": "2019-10-30",
+    "StartAction": "StartFlowExecution",
+    "Actions": [
+      {
+        "Identifier": "StartFlowExecution",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "PlaySupportPrompt",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "Welcome to customer support. Please wait while we connect you."
+        }
+      },
+      {
+        "Identifier": "PlaySupportPrompt",
+        "Type": "PlayPrompt",
+        "Transitions": {
+          "NextAction": "InvokeLexBot",
+          "Errors": [
+            {
+              "NextAction": "InvokeLexBot",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "PromptId": "${Prompt.WelcomeEn}"
+        }
+      },
+      {
+        "Identifier": "InvokeLexBot",
+        "Type": "ConnectParticipantWithLexBot",
+        "Transitions": {
+          "NextAction": "CheckLexIntent",
+          "Errors": [
+            {
+              "NextAction": "LexBotError",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "BotName": "${Lex.IntentBot}",
+          "LexSessionAttributes": {
+            "customerPhoneNumber": "$.CustomerEndpoint.Address"
+          }
+        }
+      },
+      {
+        "Identifier": "CheckLexIntent",
+        "Type": "Compare", 
+        "Transitions": {
+          "NextAction": "RouteToSupportQueue",
+          "Conditions": [
+            {
+              "NextAction": "RouteToTechnicalSupport",
+              "Condition": {
+                "Operator": "Equals",
+                "Operands": [
+                  "$.Lex.IntentName",
+                  "TechnicalSupport"
+                ]
+              }
+            },
+            {
+              "NextAction": "RouteToGeneralInquiry",
+              "Condition": {
+                "Operator": "Equals",
+                "Operands": [
+                  "$.Lex.IntentName", 
+                  "GeneralInquiry"
+                ]
+              }
+            }
+          ],
+          "Errors": [
+            {
+              "NextAction": "RouteToSupportQueue",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {}
+      },
+      {
+        "Identifier": "RouteToTechnicalSupport",
+        "Type": "InvokeLambdaFunction",
+        "Transitions": {
+          "NextAction": "TransferToTechQueue",
+          "Errors": [
+            {
+              "NextAction": "RouteToSupportQueue",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "LambdaFunctionARN": "${Lambda.ValidationAlias}",
+          "InvocationTimeLimitSeconds": "15",
+          "LambdaInvocationAttributes": {
+            "intent": "TechnicalSupport",
+            "customerData": "$.Lex.SessionAttributes"
+          }
+        }
+      },
+      {
+        "Identifier": "TransferToTechQueue",
+        "Type": "TransferParticipantToQueue", 
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "QueueAtCapacity",
+              "ErrorType": "QueueAtCapacity"
+            },
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "QueueId": "${Queue.Support}",
+          "ContactFlowId": "CURRENT"
+        }
+      },
+      {
+        "Identifier": "RouteToGeneralInquiry",
+        "Type": "TransferParticipantToQueue",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "QueueAtCapacity",
+              "ErrorType": "QueueAtCapacity"
+            },
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "QueueId": "${Queue.GeneralInquiry}",
+          "ContactFlowId": "CURRENT"
+        }
+      },
+      {
+        "Identifier": "RouteToSupportQueue",
+        "Type": "TransferParticipantToQueue",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "QueueAtCapacity", 
+              "ErrorType": "QueueAtCapacity"
+            },
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "QueueId": "${Queue.Support}",
+          "ContactFlowId": "CURRENT"
+        }
+      },
+      {
+        "Identifier": "LexBotError",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "RouteToSupportQueue",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "I'm having trouble understanding. Let me connect you to an agent."
+        }
+      },
+      {
+        "Identifier": "QueueAtCapacity",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "All our support agents are currently busy. Please try again later or leave a message on our website. Goodbye."
+        }
+      },
+      {
+        "Identifier": "DisconnectParticipant",
+        "Type": "DisconnectParticipant",
+        "Parameters": {}
+      }
+    ]
+  },
+  "tags": {
+    "Purpose": "Support Entry Point",
+    "Owner": "Support Team", 
+    "LastUpdated": "2025-10-16"
+  }
+}

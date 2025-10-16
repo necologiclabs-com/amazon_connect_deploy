@@ -1,0 +1,214 @@
+{
+  "name": "SalesEntry",
+  "type": "CONTACT_FLOW",
+  "description": "Main sales entry flow with authentication and routing",
+  "content": {
+    "Version": "2019-10-30",
+    "StartAction": "StartFlowExecution",
+    "Actions": [
+      {
+        "Identifier": "StartFlowExecution",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "CheckBusinessHours",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "Thank you for calling. Please hold while we connect you."
+        }
+      },
+      {
+        "Identifier": "CheckBusinessHours",
+        "Type": "CheckHoursOfOperation",
+        "Transitions": {
+          "NextAction": "PlayWelcomeMessage",
+          "Conditions": [
+            {
+              "NextAction": "PlayAfterHoursMessage",
+              "Condition": {
+                "Operator": "Equals",
+                "Operands": [
+                  "False"
+                ]
+              }
+            }
+          ],
+          "Errors": [
+            {
+              "NextAction": "PlayWelcomeMessage",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {}
+      },
+      {
+        "Identifier": "PlayWelcomeMessage",
+        "Type": "MessageParticipant", 
+        "Transitions": {
+          "NextAction": "InvokeLambdaAuthentication",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "Welcome to our sales department. For security purposes, please provide your customer ID when prompted.",
+          "TextToSpeechType": "text"
+        }
+      },
+      {
+        "Identifier": "InvokeLambdaAuthentication",
+        "Type": "InvokeLambdaFunction",
+        "Transitions": {
+          "NextAction": "CheckAuthenticationResult",
+          "Errors": [
+            {
+              "NextAction": "AuthenticationError", 
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "LambdaFunctionARN": "${Lambda.AuthenticationAlias}",
+          "InvocationTimeLimitSeconds": "30",
+          "LambdaInvocationAttributes": {
+            "phoneNumber": "$.CustomerEndpoint.Address",
+            "phoneNumber": "$.CustomerEndpoint.Address"
+          },
+          "ResponseValidation": {
+            "ResponseType": "JSON"
+          }
+        }
+      },
+      {
+        "Identifier": "CheckAuthenticationResult", 
+        "Type": "Compare",
+        "Transitions": {
+          "NextAction": "RouteToQueue",
+          "Conditions": [
+            {
+              "NextAction": "AuthenticationFailed",
+              "Condition": {
+                "Operator": "Equals",
+                "Operands": [
+                  "$.External.authResult",
+                  "FAILED"
+                ]
+              }
+            }
+          ],
+          "Errors": [
+            {
+              "NextAction": "AuthenticationError",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {}
+      },
+      {
+        "Identifier": "RouteToQueue",
+        "Type": "TransferParticipantToQueue",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "QueueError",
+              "ErrorType": "QueueAtCapacity" 
+            },
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "QueueId": "${Queue.Sales}",
+          "ContactFlowId": "CURRENT"
+        }
+      },
+      {
+        "Identifier": "AuthenticationFailed",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "Authentication failed. Please contact customer service for assistance. Goodbye."
+        }
+      },
+      {
+        "Identifier": "AuthenticationError",
+        "Type": "MessageParticipant", 
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "We're experiencing technical difficulties. Please try again later. Goodbye."
+        }
+      },
+      {
+        "Identifier": "QueueError",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant", 
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "All our agents are currently busy. Please try again later. Goodbye."
+        }
+      },
+      {
+        "Identifier": "PlayAfterHoursMessage",
+        "Type": "MessageParticipant",
+        "Transitions": {
+          "NextAction": "DisconnectParticipant",
+          "Errors": [
+            {
+              "NextAction": "DisconnectParticipant",
+              "ErrorType": "NoMatchingError"
+            }
+          ]
+        },
+        "Parameters": {
+          "Text": "Thank you for calling. Our office is currently closed. Please call back during business hours. Goodbye."
+        }
+      },
+      {
+        "Identifier": "DisconnectParticipant",
+        "Type": "DisconnectParticipant",
+        "Parameters": {}
+      }
+    ]
+  },
+  "tags": {
+    "Purpose": "Sales Entry Point",
+    "Owner": "Sales Team",
+    "LastUpdated": "2025-10-16"
+  }
+}

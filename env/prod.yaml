@@ -1,0 +1,64 @@
+# 本番環境設定
+# Amazon Connect Instance Configuration
+connect:
+  instance_id: "abcdef01-2345-6789-abcd-ef0123456789"
+  instance_arn: "arn:aws:connect:us-east-1:345678901234:instance/abcdef01-2345-6789-abcd-ef0123456789"
+  region: "us-east-1"
+
+# Token Mappings for PROD Environment
+tokens:
+  # Lambda Functions (Use Alias ARNs)
+  Lambda:
+    InvokeAlias: "arn:aws:lambda:us-east-1:345678901234:function:connect-prod-handler:LIVE"
+    AuthenticationAlias: "arn:aws:lambda:us-east-1:345678901234:function:connect-prod-auth:LIVE"
+    ValidationAlias: "arn:aws:lambda:us-east-1:345678901234:function:connect-prod-validate:LIVE"
+
+  # Queues (Connect ARNs)
+  Queue:
+    Sales: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/queue/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    Support: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/queue/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    GeneralInquiry: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/queue/cccccccc-cccc-cccc-cccc-cccccccccccc"
+
+  # Prompts (Connect ARNs)
+  Prompt:
+    WelcomeJa: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/prompt/dddddddd-dddd-dddd-dddd-dddddddddddd"
+    WelcomeEn: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/prompt/eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    HoldMusic: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/prompt/ffffffff-ffff-ffff-ffff-ffffffffffff"
+
+  # Lex Bots (Connect ARNs)
+  Lex:
+    BotV2: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/bot-alias/gggggggg-gggg-gggg-gggg-gggggggggggg"
+    IntentBot: "arn:aws:connect:us-east-1:345678901234:instance/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz/bot-alias/hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh"
+
+  # Phone Numbers (E.164 format)
+  PhoneNumber:
+    Main: "+18003456789"
+    Support: "+18003456790"
+    Sales: "+18003456791"
+
+# Integration Settings
+integration:
+  lambda_timeout: 30
+  lex_timeout: 15
+  queue_timeout: 300
+
+# Monitoring and Alerts
+monitoring:
+  cloudwatch_log_group: "/aws/connect/prod"
+  metrics_namespace: "Connect/Prod"
+  alert_sns_topic: "arn:aws:sns:us-east-1:345678901234:connect-prod-alerts"
+
+# Blue/Green Deployment Settings
+deployment:
+  rollback_enabled: true
+  health_check_duration: 600 # 10 minutes
+  canary_percentage: 5
+  full_deployment_delay: 1800 # 30 minutes
+
+# Change Window (No deployment during these times JST)
+change_window:
+  blocked_hours:
+    - start: "09:00"
+      end: "18:00"
+      days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+  emergency_override: false

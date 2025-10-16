@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+*.egg-info/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+*.zip
+*.tgz
+*.tar.gz
+
+# CDK outputs
+cdk.out/
+cdk.context.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment files (templates only)
+# Actual environment files should be managed separately
+!env/*.yaml
+
+# Temporary files
+tmp/
+temp/
+
+# AWS credentials
+.aws/
+credentials
+
+# Secrets (should never be committed)
+secrets/
+*.secret
+*.key
+
+# Test outputs
+coverage/
+.nyc_output/
+test-results/

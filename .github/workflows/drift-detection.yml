@@ -1,0 +1,173 @@
+name: Nightly Drift Detection
+
+on:
+  schedule:
+    # Run at 23:00 JST (14:00 UTC)
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '18'
+  AWS_REGION: us-east-1
+
+jobs:
+  detect-drift:
+    name: Detect Configuration Drift
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+      issues: write
+
+    strategy:
+      matrix:
+        environment: [test, prod]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars[format('AWS_{0}_DRIFT_ROLE_ARN', upper(matrix.environment))] }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Get current Connect flows
+      run: |
+        node scripts/export-current-flows.js --env ${{ matrix.environment }} --output current-flows-${{ matrix.environment }}.json
+
+    - name: Render expected flows
+      run: |
+        npm run render -- --env ${{ matrix.environment }} --output expected-flows-${{ matrix.environment }}
+
+    - name: Compare flows and detect drift
+      id: drift_check
+      run: |
+        node scripts/drift-detector.js \
+          --env ${{ matrix.environment }} \
+          --current current-flows-${{ matrix.environment }}.json \
+          --expected expected-flows-${{ matrix.environment }} \
+          --output drift-report-${{ matrix.environment }}.md
+
+        if [ -f "drift-detected-${{ matrix.environment }}.flag" ]; then
+          echo "drift_detected=true" >> $GITHUB_OUTPUT
+          echo "Drift detected in ${{ matrix.environment }}"
+        else
+          echo "drift_detected=false" >> $GITHUB_OUTPUT
+          echo "No drift detected in ${{ matrix.environment }}"
+        fi
+
+    - name: CDK Drift Detection
+      if: matrix.environment == 'prod'
+      run: |
+        cd cdk
+        cdk diff --context environment=${{ matrix.environment }} > ../cdk-drift-${{ matrix.environment }}.txt || true
+        
+        if [ -s "../cdk-drift-${{ matrix.environment }}.txt" ]; then
+          echo "CDK drift detected" >> ../drift-report-${{ matrix.environment }}.md
+          echo "## CDK Drift Details" >> ../drift-report-${{ matrix.environment }}.md
+          echo '```' >> ../drift-report-${{ matrix.environment }}.md
+          cat ../cdk-drift-${{ matrix.environment }}.txt >> ../drift-report-${{ matrix.environment }}.md
+          echo '```' >> ../drift-report-${{ matrix.environment }}.md
+        fi
+
+    - name: Create GitHub Issue for Drift
+      if: steps.drift_check.outputs.drift_detected == 'true'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const reportPath = `drift-report-${{ matrix.environment }}.md`;
+          
+          let body = '# Configuration Drift Detected\\n\\nNo detailed report available.';
+          try {
+            body = fs.readFileSync(reportPath, 'utf8');
+          } catch (error) {
+            body += `\\n\\nError reading report: ${error.message}`;
+          }
+          
+          const title = `🚨 Configuration Drift Detected - ${{ matrix.environment }} Environment`;
+          
+          await github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: title,
+            body: body,
+            labels: ['drift-detection', 'environment:${{ matrix.environment }}', 'priority:high']
+          });
+
+    - name: Notify via webhook (if configured)
+      if: steps.drift_check.outputs.drift_detected == 'true'
+      run: |
+        if [ -n "${{ vars.DRIFT_NOTIFICATION_WEBHOOK }}" ]; then
+          node scripts/send-notification.js \
+            --webhook "${{ vars.DRIFT_NOTIFICATION_WEBHOOK }}" \
+            --message "Configuration drift detected in ${{ matrix.environment }} environment" \
+            --severity "warning" \
+            --env "${{ matrix.environment }}"
+        fi
+
+    - name: Upload drift detection artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: drift-detection-${{ matrix.environment }}-${{ github.run_id }}
+        path: |
+          current-flows-${{ matrix.environment }}.json
+          expected-flows-${{ matrix.environment }}/
+          drift-report-${{ matrix.environment }}.md
+          cdk-drift-${{ matrix.environment }}.txt
+          *.log
+
+  consolidate-results:
+    name: Consolidate Drift Results
+    runs-on: ubuntu-latest
+    needs: detect-drift
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: drift-results
+
+    - name: Generate consolidated report
+      run: |
+        echo "# Daily Drift Detection Summary" > consolidated-drift-report.md
+        echo "**Date**: $(date -u)" >> consolidated-drift-report.md
+        echo "**Run ID**: ${{ github.run_id }}" >> consolidated-drift-report.md
+        echo "" >> consolidated-drift-report.md
+        
+        for env_dir in drift-results/drift-detection-*; do
+          if [ -d "$env_dir" ]; then
+            env_name=$(basename "$env_dir" | sed 's/drift-detection-//' | sed 's/-[0-9]*$//')
+            echo "## Environment: $env_name" >> consolidated-drift-report.md
+            
+            if [ -f "$env_dir/drift-report-$env_name.md" ]; then
+              cat "$env_dir/drift-report-$env_name.md" >> consolidated-drift-report.md
+            else
+              echo "✅ No drift detected" >> consolidated-drift-report.md
+            fi
+            echo "" >> consolidated-drift-report.md
+          fi
+        done
+
+    - name: Upload consolidated report
+      uses: actions/upload-artifact@v4
+      with:
+        name: consolidated-drift-report-${{ github.run_id }}
+        path: consolidated-drift-report.md

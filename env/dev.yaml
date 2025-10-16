@@ -1,0 +1,56 @@
+# 開発環境設定
+# Amazon Connect Instance Configuration
+connect:
+  instance_id: "12345678-1234-5678-9abc-123456789012"
+  instance_arn: "arn:aws:connect:us-east-1:123456789012:instance/12345678-1234-5678-9abc-123456789012"
+  region: "us-east-1"
+
+# Token Mappings for DEV Environment
+tokens:
+  # Lambda Functions (Use Alias ARNs)
+  Lambda:
+    InvokeAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-handler:LIVE"
+    AuthenticationAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-auth:LIVE"
+    ValidationAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-validate:LIVE"
+
+  # Queues (Connect ARNs)
+  Queue:
+    Sales: "arn:aws:connect:us-east-1:123456789012:instance/12345678-1234-5678-9abc-123456789012/queue/11111111-2222-3333-4444-555555555555"
+    Support: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/queue/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
+    GeneralInquiry: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/queue/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+
+  # Prompts (Connect ARNs)
+  Prompt:
+    WelcomeJa: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+    WelcomeEn: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/cccccccc-cccc-cccc-cccc-cccccccccccc"
+    HoldMusic: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/dddddddd-dddd-dddd-dddd-dddddddddddd"
+
+  # Lex Bots (Connect ARNs)
+  Lex:
+    BotV2: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/bot-alias/eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+    IntentBot: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/bot-alias/ffffffff-ffff-ffff-ffff-ffffffffffff"
+
+  # Phone Numbers (E.164 format)
+  PhoneNumber:
+    Main: "+18001234567"
+    Support: "+18001234568"
+    Sales: "+18001234569"
+
+# Integration Settings
+integration:
+  lambda_timeout: 30
+  lex_timeout: 15
+  queue_timeout: 300
+
+# Monitoring and Alerts
+monitoring:
+  cloudwatch_log_group: "/aws/connect/dev"
+  metrics_namespace: "Connect/Dev"
+  alert_sns_topic: "arn:aws:sns:us-east-1:123456789012:connect-dev-alerts"
+
+# Blue/Green Deployment Settings
+deployment:
+  rollback_enabled: true
+  health_check_duration: 300 # 5 minutes
+  canary_percentage: 10
+  full_deployment_delay: 600 # 10 minutes

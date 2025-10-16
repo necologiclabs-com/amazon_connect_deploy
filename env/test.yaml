@@ -1,0 +1,56 @@
+# テスト環境設定
+# Amazon Connect Instance Configuration
+connect:
+  instance_id: "87654321-4321-8765-4321-876543218765"
+  instance_arn: "arn:aws:connect:us-east-1:234567890123:instance/87654321-4321-8765-4321-876543218765"
+  region: "us-east-1"
+
+# Token Mappings for TEST Environment
+tokens:
+  # Lambda Functions (Use Alias ARNs)
+  Lambda:
+    InvokeAlias: "arn:aws:lambda:us-east-1:234567890123:function:connect-test-handler:LIVE"
+    AuthenticationAlias: "arn:aws:lambda:us-east-1:234567890123:function:connect-test-auth:LIVE"
+    ValidationAlias: "arn:aws:lambda:us-east-1:234567890123:function:connect-test-validate:LIVE"
+
+  # Queues (Connect ARNs)
+  Queue:
+    Sales: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/queue/11111111-1111-1111-1111-111111111111"
+    Support: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/queue/22222222-2222-2222-2222-222222222222"
+    GeneralInquiry: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/queue/33333333-3333-3333-3333-333333333333"
+
+  # Prompts (Connect ARNs)
+  Prompt:
+    WelcomeJa: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/prompt/44444444-4444-4444-4444-444444444444"
+    WelcomeEn: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/prompt/55555555-5555-5555-5555-555555555555"
+    HoldMusic: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/prompt/66666666-6666-6666-6666-666666666666"
+
+  # Lex Bots (Connect ARNs)
+  Lex:
+    BotV2: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/bot-alias/77777777-7777-7777-7777-777777777777"
+    IntentBot: "arn:aws:connect:us-east-1:234567890123:instance/yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy/bot-alias/88888888-8888-8888-8888-888888888888"
+
+  # Phone Numbers (E.164 format)
+  PhoneNumber:
+    Main: "+18002345678"
+    Support: "+18002345679"
+    Sales: "+18002345680"
+
+# Integration Settings
+integration:
+  lambda_timeout: 30
+  lex_timeout: 15
+  queue_timeout: 300
+
+# Monitoring and Alerts
+monitoring:
+  cloudwatch_log_group: "/aws/connect/test"
+  metrics_namespace: "Connect/Test"
+  alert_sns_topic: "arn:aws:sns:us-east-1:234567890123:connect-test-alerts"
+
+# Blue/Green Deployment Settings
+deployment:
+  rollback_enabled: true
+  health_check_duration: 300 # 5 minutes
+  canary_percentage: 20
+  full_deployment_delay: 300 # 5 minutes

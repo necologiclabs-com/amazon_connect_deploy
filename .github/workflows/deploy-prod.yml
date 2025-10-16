@@ -1,0 +1,178 @@
+name: Deploy to PROD
+
+on:
+  push:
+    tags:
+      - 'release-*'
+
+env:
+  NODE_VERSION: '18'
+  AWS_REGION: us-east-1
+  ENVIRONMENT: prod
+
+jobs:
+  deploy-prod:
+    name: Deploy to PROD Environment
+    runs-on: ubuntu-latest
+    environment: 
+      name: prod
+      url: https://console.aws.amazon.com/connect/
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Extract release info
+      id: release_info
+      run: |
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "tag=${TAG_NAME}" >> $GITHUB_OUTPUT
+        echo "short_sha=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
+        echo "release_date=$(date -u +%Y%m%d-%H%M%S)" >> $GITHUB_OUTPUT
+
+    - name: Configure AWS credentials for PROD
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ vars.AWS_PROD_DEPLOY_ROLE_ARN }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Check change window
+      run: |
+        node scripts/check-change-window.js --env ${{ env.ENVIRONMENT }}
+
+    - name: Run validation
+      run: |
+        npm run validate
+        npm run render -- --env ${{ env.ENVIRONMENT }} --output dist/${{ env.ENVIRONMENT }}
+
+    - name: Enhanced validation for PROD
+      run: |
+        node scripts/schema-validation.js --env ${{ env.ENVIRONMENT }}
+        node scripts/integrity-check.js --env ${{ env.ENVIRONMENT }}
+        node scripts/security-scan.js --env ${{ env.ENVIRONMENT }}
+
+    - name: Install CDK
+      run: npm install -g aws-cdk
+
+    - name: CDK Synth with release metadata
+      run: |
+        cd cdk
+        cdk synth --context environment=${{ env.ENVIRONMENT }} \
+          --context flowsPath=../dist/${{ env.ENVIRONMENT }} \
+          --context releaseTag=${{ steps.release_info.outputs.tag }} \
+          --context releaseDate=${{ steps.release_info.outputs.release_date }} \
+          --context gitSha=${{ steps.release_info.outputs.short_sha }}
+
+    - name: Pre-deployment backup
+      run: |
+        node scripts/backup-current-flows.js --env ${{ env.ENVIRONMENT }}
+
+    - name: CDK Deploy (Blue/Green)
+      run: |
+        cd cdk
+        cdk deploy --all \
+          --context environment=${{ env.ENVIRONMENT }} \
+          --context flowsPath=../dist/${{ env.ENVIRONMENT }} \
+          --context releaseTag=${{ steps.release_info.outputs.tag }} \
+          --context releaseDate=${{ steps.release_info.outputs.release_date }} \
+          --context gitSha=${{ steps.release_info.outputs.short_sha }} \
+          --context blueGreenDeployment=true \
+          --require-approval never \
+          --outputs-file ../deployment-outputs.json
+
+    - name: Canary deployment phase
+      run: |
+        echo "Starting canary deployment..."
+        node scripts/blue-green-controller.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --phase canary \
+          --percentage 5
+
+    - name: Canary health check
+      run: |
+        echo "Monitoring canary deployment..."
+        node scripts/health-monitor.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --duration 600 \
+          --phase canary
+
+    - name: Gradual rollout
+      run: |
+        echo "Starting gradual rollout..."
+        node scripts/blue-green-controller.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --phase gradual \
+          --steps "20,50,100" \
+          --interval 300
+
+    - name: Final health check
+      run: |
+        echo "Final health monitoring..."
+        node scripts/health-monitor.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --duration 300 \
+          --phase final
+
+    - name: Post-deployment verification
+      run: |
+        node scripts/post-deploy-validation.js --env ${{ env.ENVIRONMENT }}
+        node scripts/audit-log.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --tag ${{ steps.release_info.outputs.tag }} \
+          --sha ${{ steps.release_info.outputs.short_sha }}
+
+    - name: Generate production deployment report
+      if: always()
+      run: |
+        node scripts/generate-deployment-report.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --status ${{ job.status }} \
+          --tag ${{ steps.release_info.outputs.tag }} \
+          --outputs deployment-outputs.json \
+          --output prod-deployment-report.md
+
+    - name: Upload production artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: prod-deployment-${{ steps.release_info.outputs.tag }}
+        path: |
+          deployment-outputs.json
+          prod-deployment-report.md
+          backup/
+          cdk.out/
+          *.log
+
+    - name: Rollback on failure
+      if: failure()
+      run: |
+        echo "Deployment failed, initiating rollback..."
+        node scripts/blue-green-controller.js \
+          --env ${{ env.ENVIRONMENT }} \
+          --action rollback
+
+    - name: Notify deployment result
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const status = '${{ job.status }}';
+          const emoji = status === 'success' ? '🚀' : '🚨';
+          const tag = '${{ steps.release_info.outputs.tag }}';
+          
+          const message = `${emoji} **PRODUCTION deployment ${status}**\\n\\nRelease: ${tag}\\nCommit: ${{ steps.release_info.outputs.short_sha }}\\nEnvironment: ${{ env.ENVIRONMENT }}`;
+          
+          console.log(message);
