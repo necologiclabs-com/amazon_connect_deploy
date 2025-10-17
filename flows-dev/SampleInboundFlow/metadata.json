@@ -1,0 +1,7 @@
+{
+  "name": "Sample inbound flow (first contact experience)",
+  "type": "CONTACT_FLOW",
+  "description": "First contact experience",
+  "state": "ACTIVE",
+  "status": "PUBLISHED"
+}

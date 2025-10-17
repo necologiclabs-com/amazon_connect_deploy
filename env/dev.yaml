@@ -8,34 +8,42 @@ connect:
 
 # Token Mappings for DEV Environment
 tokens:
-  # Lambda Functions (Use Alias ARNs)
-  Lambda:
-    InvokeAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-handler:LIVE"
-    AuthenticationAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-auth:LIVE"
-    ValidationAlias: "arn:aws:lambda:us-east-1:123456789012:function:connect-dev-validate:LIVE"
-
-  # Queues (Connect ARNs)
+  # Queues (Connect ARNs) - From actual Connect instance
   Queue:
-    Sales: "arn:aws:connect:us-east-1:123456789012:instance/12345678-1234-5678-9abc-123456789012/queue/11111111-2222-3333-4444-555555555555"
-    Support: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/queue/zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
-    GeneralInquiry: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/queue/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    BasicQueue: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/queue/8c84df6c-3f70-49b1-a24a-6f478a06bf74"
+    AgentQueue: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/queue/agent/9d2bcc52-f18f-46dd-9afb-b8170ca14761"
 
-  # Prompts (Connect ARNs)
+  # Prompts (Connect ARNs) - From actual Connect instance
   Prompt:
-    WelcomeJa: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
-    WelcomeEn: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/cccccccc-cccc-cccc-cccc-cccccccccccc"
-    HoldMusic: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/prompt/dddddddd-dddd-dddd-dddd-dddddddddddd"
+    CustomerHold: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/1b2c26fe-9074-4de2-80ee-285a0f8dff42"
+    CustomerQueue: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/62aca243-e11e-4645-bfc9-6884492c4f4f"
+    Beep: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/979a4e5e-5c6e-4425-9421-c2596bd6a331"
+    MusicJazz: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/141b3f3f-ff19-4a97-947d-29f9331ccefa"
+    MusicPop: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/b92ae685-38d8-45a0-8245-b7dfa20a6be3"
+    MusicRock: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/ca8b6f20-b262-4bf3-ab9d-b317f4b321c1"
+    MusicPopAlternate: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/prompt/e94d6b5e-b0dc-4e88-a9fa-98660ebd9835"
 
-  # Lex Bots (Connect ARNs)
-  Lex:
-    BotV2: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/bot-alias/eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
-    IntentBot: "arn:aws:connect:us-east-1:123456789012:instance/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx/bot-alias/ffffffff-ffff-ffff-ffff-ffffffffffff"
-
-  # Phone Numbers (E.164 format)
-  PhoneNumber:
-    Main: "+18001234567"
-    Support: "+18001234568"
-    Sales: "+18001234569"
+  # Contact Flows (Connect ARNs) - From actual Connect instance
+  ContactFlow:
+    SampleInboundFlow: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/b959f4c0-be65-47f3-be1b-6004f072ccdf"
+    SampleLambdaIntegration: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/8a6e06ea-dd7c-4083-a8a9-a23eeeafadd6"
+    SampleQueueConfiguration: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/05661c10-3097-4feb-a739-d42495f77ae2"
+    SampleSecureInput: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/e4d4b2e0-57e8-442a-9bf5-b832135ff26a"
+    SampleScreenpop: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/fa3e6cd4-6cc8-438b-ab43-886bde7993a3"
+    SampleABTest: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/bd54412a-60dc-478f-8d3c-acffe7adbea7"
+    SampleRecordingBehavior: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/eb708876-b949-42ca-ad0c-01a2211220f9"
+    SampleDisconnectFlow: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/737f7f64-3665-4b1d-a2f7-262879a58abb"
+    SampleQueueCustomer: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/ebe09448-87fa-45a9-9b8b-747245bcd26e"
+    SampleSecureInputWithAgent: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/24b9961c-9dd1-4729-a6f9-4f13f864915b"
+    SampleInterruptibleQueue: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/ea5e271d-a4e2-49a2-8117-a78767902455"
+    DefaultCustomerHold: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/ef502960-ffd8-4f52-a90c-285a86f95590"
+    DefaultAgentHold: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/046100a1-72c1-4dd2-a354-1c59be2aa089"
+    DefaultAgentTransfer: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/2e1ed094-b3e1-43b3-93bf-7c78cd759774"
+    DefaultAgentWhisper: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/543cfaa9-ca4d-4b22-b197-b1f8f62e5821"
+    DefaultCustomerQueue: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/177851a4-f578-41bf-aea2-81f6d57b61d0"
+    DefaultCustomerWhisper: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/bd4ea3ab-109d-42e7-ad0a-1358d4e405a1"
+    DefaultOutbound: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/bc422393-fe1f-4269-b38a-c7dd234ca801"
+    DefaultQueueTransfer: "arn:aws:connect:ap-northeast-1:369751620314:instance/9c96af75-7222-4eb1-9d16-29656c4401f2/contact-flow/c6c0e8f2-9ca3-4466-8ef5-6825b6a945fc"
 
 # Integration Settings
 integration:
